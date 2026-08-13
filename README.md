@@ -89,8 +89,8 @@ be opened directly.
 - **Public web only**: every URL passes an SSRF guard before the API is
   called — non-http(s) protocols, localhost, private/reserved IPs, IPv6
   literals, userinfo, and oversized URLs are rejected.
-- The token is read from the environment at load time; it is never logged
-  and never written to disk by this extension.
+- The token is read from `~/.pi/agent/cloudflare-browser-run.json` at load
+  time; it is never logged and never written to disk by this extension.
 - Browser Run itself identifies its traffic as a bot (`Well-behaved Bot
   Mode`), which is the compliant way to scrape.
 
