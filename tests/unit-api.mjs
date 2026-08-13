@@ -41,20 +41,20 @@ describe("assertSafeUrl", () => {
 
 describe("loadConfig", () => {
   it("reads token and account from env", () => {
-    const c = loadConfig({ CLOUDFLARE_API_TOKEN: "t", CLOUDFLARE_ACCOUNT_ID: "a" });
+    const c = loadConfig({ CF_API_TOKEN: "t", CF_ACCOUNT_ID: "a" });
     assert.equal(c.apiToken, "t");
   });
 
   it("reports missing token", () => {
-    const c = loadConfig({ CLOUDFLARE_ACCOUNT_ID: "a" });
+    const c = loadConfig({ CF_ACCOUNT_ID: "a" });
     assert.equal(c.error !== undefined, true);
-    assert.match(c.error, /CLOUDFLARE_API_TOKEN/);
+    assert.match(c.error, /CF_API_TOKEN/);
   });
 
   it("reports missing account id", () => {
-    const c = loadConfig({ CLOUDFLARE_API_TOKEN: "t" });
+    const c = loadConfig({ CF_API_TOKEN: "t" });
     assert.equal(c.error !== undefined, true);
-    assert.match(c.error, /CLOUDFLARE_ACCOUNT_ID/);
+    assert.match(c.error, /CF_ACCOUNT_ID/);
   });
 });
 

@@ -46,25 +46,26 @@ API token with **Browser Rendering: Edit** permission plus your account id.
 Pick one:
 
 **Option A — config file (recommended)** — create
-`~/.pi/agent/cloudflare-browser-run.json`:
+`~/.pi/agent/cloudflare-browser-run.json` (keys use the `cf-` prefix):
 
 ```json
 {
-  "apiToken": "paste-your-token-here",
-  "accountId": "paste-your-account-id"
+  "cf-api-token": "paste-your-token-here",
+  "cf-account-id": "paste-your-account-id"
 }
 ```
 
 **Option B — environment variables** (add to `~/.zshrc` /
-`~/.config/fish/config.fish`):
+`~/.config/fish/config.fish`; vars use the `CF_` prefix):
 
 ```bash
-export CLOUDFLARE_API_TOKEN="paste-your-token-here"
-export CLOUDFLARE_ACCOUNT_ID="paste-your-account-id"
+export CF_API_TOKEN="paste-your-token-here"
+export CF_ACCOUNT_ID="paste-your-account-id"
 ```
 
-Env vars win when both are present. Optional: `CF_API_BASE` (default
-`https://api.cloudflare.com/client/v4`).
+Optional: `CF_API_BASE` (default `https://api.cloudflare.com/client/v4`).
+Legacy `CLOUDFLARE_*` / unprefixed config keys still work but are
+deprecated. Env vars win when both are present.
 
 If either value is missing the tools reply with a setup hint instead of
 erroring — nothing breaks.

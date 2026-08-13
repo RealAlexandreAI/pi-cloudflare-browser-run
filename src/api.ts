@@ -73,17 +73,23 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): BrowserRunConf
     const { homedir } = require("os") as typeof import("os");
     const { join } = require("path") as typeof import("path");
     const p = join(homedir(), ".pi", "agent", "cloudflare-browser-run.json");
-    file = JSON.parse(readFileSync(p, "utf8")) as Partial<BrowserRunConfig>;
+    file = JSON.parse(readFileSync(p, "utf8")) as Record<string, string>;
   } catch {
     // no config file — env only
   }
-  const apiToken = env.CLOUDFLARE_API_TOKEN ?? env.CF_API_TOKEN ?? file.apiToken;
-  const accountId = env.CLOUDFLARE_ACCOUNT_ID ?? env.CF_ACCOUNT_ID ?? file.accountId;
+  // Config file uses `cf-` prefixed keys; env uses `CF_` prefixed vars.
+  // Legacy CLOUDFLARE_* / unprefixed keys still work as fallbacks.
+  const apiToken = env.CF_API_TOKEN ?? env.CLOUDFLARE_API_TOKEN ?? file["cf-api-token"] ?? file.apiToken;
+  const accountId = env.CF_ACCOUNT_ID ?? env.CLOUDFLARE_ACCOUNT_ID ?? file["cf-account-id"] ?? file.accountId;
   if (!apiToken) {
-    return { error: "CLOUDFLARE_API_TOKEN not set — create a token with Browser Rendering:Edit permission" };
+    return { error: "CF_API_TOKEN not set — create a token with Browser Rendering:Edit permission" };
   }
-  if (!accountId) return { error: "CLOUDFLARE_ACCOUNT_ID not set (your CF account id)" };
-  return { apiToken, accountId, apiBase: env.CF_API_BASE ?? file.apiBase ?? DEFAULT_API_BASE };
+  if (!accountId) return { error: "CF_ACCOUNT_ID not set (your Cloudflare account id)" };
+  return {
+    apiToken,
+    accountId,
+    apiBase: env.CF_API_BASE ?? file["cf-api-base"] ?? file.apiBase ?? DEFAULT_API_BASE,
+  };
 }
 
 export async function browserRunAction(config: BrowserRunConfig, action: Action, rawUrl: string): Promise<ApiResult> {
