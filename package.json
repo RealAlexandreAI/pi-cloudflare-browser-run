@@ -1,7 +1,7 @@
 {
   "name": "pi-cloudflare-browser-run",
-  "version": "0.1.0",
-  "description": "Pi extension: web browsing tools (markdown / screenshot / pdf) powered by Cloudflare Browser Run. Headless Chrome on CF's network — JS-rendered pages, login sessions, WebMCP-capable.",
+  "version": "0.1.1",
+  "description": "Pi extension: web browsing tools (markdown / screenshot / pdf) powered by Cloudflare Browser Run. Headless Chrome on CF's network \u2014 JS-rendered pages, login sessions, WebMCP-capable.",
   "type": "module",
   "engines": {
     "node": ">=20"
