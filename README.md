@@ -27,21 +27,59 @@ Restart `pi` if it was already running.
 
 ## Auth (required)
 
-Export these in your shell (or your `~/.zshrc` / `~/.config/fish/config.fish`):
+The tools call Cloudflare Browser Run on your behalf, so they need a Cloudflare
+API token with **Browser Rendering: Edit** permission plus your account id.
 
-```bash
-export CLOUDFLARE_API_TOKEN="<token with Browser Rendering:Edit permission>"
-export CLOUDFLARE_ACCOUNT_ID="<your Cloudflare account id>"
+### 1. Create the token (one time)
+
+1. Open https://dash.cloudflare.com/profile/api-tokens
+2. **Create Token** → under *Start with a template* pick
+   **"Browser Rendering: Edit"** (or *Create Custom Token* and add the
+   **Browser Rendering — Edit** permission)
+3. Copy the token (shown once) — it starts with a random string
+4. Find your account id: dashboard URL is
+   `dash.cloudflare.com/<ACCOUNT_ID>/...` (also shown under the account's
+   *Overview* or in the Workers dashboard)
+
+### 2. Give the extension the credentials
+
+Pick one:
+
+**Option A — config file (recommended)** — create
+`~/.pi/agent/cloudflare-browser-run.json`:
+
+```json
+{
+  "apiToken": "paste-your-token-here",
+  "accountId": "paste-your-account-id"
+}
 ```
 
-- Token: Cloudflare Dashboard → My Profile → API Tokens → Create Token →
-  **Browser Rendering: Edit** (or a custom token with the same permission).
-- Account id: dashboard URL `dash.cloudflare.com/<ACCOUNT_ID>/...`.
+**Option B — environment variables** (add to `~/.zshrc` /
+`~/.config/fish/config.fish`):
 
-Optional: `CF_API_BASE` (default `https://api.cloudflare.com/client/v4`).
+```bash
+export CLOUDFLARE_API_TOKEN="paste-your-token-here"
+export CLOUDFLARE_ACCOUNT_ID="paste-your-account-id"
+```
 
-If either variable is missing the tools reply with a setup hint instead of
-erroring.
+Env vars win when both are present. Optional: `CF_API_BASE` (default
+`https://api.cloudflare.com/client/v4`).
+
+If either value is missing the tools reply with a setup hint instead of
+erroring — nothing breaks.
+
+### 3. Verify
+
+```bash
+curl -X POST \
+  "https://api.cloudflare.com/client/v4/accounts/<ACCOUNT_ID>/browser-rendering/markdown" \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://example.com"}'
+```
+
+A `200` with markdown text means the token works.
 
 ## Usage
 
@@ -66,19 +104,6 @@ be opened directly.
   and never written to disk by this extension.
 - Browser Run itself identifies its traffic as a bot (`Well-behaved Bot
   Mode`), which is the compliant way to scrape.
-
-## Config file (optional)
-
-Instead of env vars you can create `~/.pi/agent/cloudflare-browser-run.json`:
-
-```json
-{
-  "apiToken": "...",
-  "accountId": "..."
-}
-```
-
-Env vars win when both are present.
 
 ## Development
 
