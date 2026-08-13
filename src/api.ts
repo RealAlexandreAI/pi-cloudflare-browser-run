@@ -9,6 +9,13 @@
 // Security: URL strictness first — only public http(s), localhost / private
 // / reserved IPs / IPv6 literals / userinfo are rejected (SSRF guard).
 
+import { readFileSync } from "fs";
+import { homedir } from "os";
+import { join } from "path";
+
+const homedirPath = (): string => homedir();
+const joinPath = (...parts: string[]): string => join(...parts);
+
 export type Action = "markdown" | "screenshot" | "pdf";
 
 export type ApiResult =
@@ -64,31 +71,38 @@ export interface BrowserRunConfig {
   apiBase?: string;
 }
 
-/** Merge env vars with an optional ~/.pi/agent/cloudflare-browser-run.json
- *  config file. Env wins. Returns a config or a setup-hint error. */
-export function loadConfig(env: NodeJS.ProcessEnv = process.env): BrowserRunConfig | { error: string } {
-  let file: Partial<BrowserRunConfig> = {};
+/** Read credentials from ~/.pi/agent/cloudflare-browser-run.json.
+ *  Keys use the `a_b_c` form: cf_api_token / cf_account_id / cf_api_base.
+ *  `configPath` is injectable for tests. Returns a config or a setup-hint
+ *  error. */
+export function loadConfig(configPath?: string): BrowserRunConfig | { error: string } {
+  let file: Record<string, string> = {};
+  const p = configPath ?? joinPath(homedirPath(), ".pi", "agent", "cloudflare-browser-run.json");
   try {
-    const { readFileSync } = require("fs") as typeof import("fs");
-    const { homedir } = require("os") as typeof import("os");
-    const { join } = require("path") as typeof import("path");
-    const p = join(homedir(), ".pi", "agent", "cloudflare-browser-run.json");
     file = JSON.parse(readFileSync(p, "utf8")) as Record<string, string>;
   } catch {
-    // no config file — env only
+    // no config file — nothing to read
   }
-  // Config file uses `cf-` prefixed keys; env uses `CF_` prefixed vars.
-  // Legacy CLOUDFLARE_* / unprefixed keys still work as fallbacks.
-  const apiToken = env.CF_API_TOKEN ?? env.CLOUDFLARE_API_TOKEN ?? file["cf-api-token"] ?? file.apiToken;
-  const accountId = env.CF_ACCOUNT_ID ?? env.CLOUDFLARE_ACCOUNT_ID ?? file["cf-account-id"] ?? file.accountId;
+  const apiToken = file["cf_api_token"] ?? file.apiToken;
+  const accountId = file["cf_account_id"] ?? file.accountId;
   if (!apiToken) {
-    return { error: "CF_API_TOKEN not set — create a token with Browser Rendering:Edit permission" };
+    return {
+      error:
+        "cf_api_token missing in ~/.pi/agent/cloudflare-browser-run.json — " +
+        "create a token with Browser Rendering:Edit permission",
+    };
   }
-  if (!accountId) return { error: "CF_ACCOUNT_ID not set (your Cloudflare account id)" };
+  if (!accountId) {
+    return {
+      error:
+        "cf_account_id missing in ~/.pi/agent/cloudflare-browser-run.json — " +
+        "your Cloudflare account id",
+    };
+  }
   return {
     apiToken,
     accountId,
-    apiBase: env.CF_API_BASE ?? file["cf-api-base"] ?? file.apiBase ?? DEFAULT_API_BASE,
+    apiBase: file["cf_api_base"] ?? file.apiBase ?? DEFAULT_API_BASE,
   };
 }
 

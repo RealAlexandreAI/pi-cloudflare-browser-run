@@ -3,7 +3,29 @@
  */
 import { after, describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { writeFileSync, mkdtempSync, rmSync } from "fs";
+import { tmpdir } from "os";
+import { join } from "path";
 import { assertSafeUrl, browserRunAction, loadConfig } from "../src/api.ts";
+
+let fixturePath;
+const pathToFixture = (content) => {
+  if (content === undefined) {
+    if (!fixturePath) {
+      const dir = mkdtempSync(join(tmpdir(), "pi-cfbr-"));
+      fixturePath = join(dir, "cloudflare-browser-run.json");
+      writeFileSync(fixturePath, JSON.stringify({ cf_api_token: "tok", cf_account_id: "acc", cf_api_base: "https://api.example.test" }));
+    }
+    return fixturePath;
+  }
+  const dir = mkdtempSync(join(tmpdir(), "pi-cfbr-"));
+  const p = join(dir, "cloudflare-browser-run.json");
+  writeFileSync(p, content);
+  return p;
+};
+after(() => {
+  if (fixturePath) rmSync(join(fixturePath, ".."), { recursive: true, force: true });
+});
 
 describe("assertSafeUrl", () => {
   it("accepts public http(s) URLs", () => {
@@ -40,21 +62,28 @@ describe("assertSafeUrl", () => {
 });
 
 describe("loadConfig", () => {
-  it("reads token and account from env", () => {
-    const c = loadConfig({ CF_API_TOKEN: "t", CF_ACCOUNT_ID: "a" });
-    assert.equal(c.apiToken, "t");
+  it("reads cf_ keys from the config file", () => {
+    const c = loadConfig(pathToFixture());
+    assert.equal(c.apiToken, "tok");
+    assert.equal(c.accountId, "acc");
+    assert.equal(c.apiBase, "https://api.example.test");
   });
 
   it("reports missing token", () => {
-    const c = loadConfig({ CF_ACCOUNT_ID: "a" });
+    const c = loadConfig(pathToFixture('{"cf_account_id": "a"}'));
     assert.equal(c.error !== undefined, true);
-    assert.match(c.error, /CF_API_TOKEN/);
+    assert.match(c.error, /cf_api_token/);
   });
 
   it("reports missing account id", () => {
-    const c = loadConfig({ CF_API_TOKEN: "t" });
+    const c = loadConfig(pathToFixture('{"cf_api_token": "t"}'));
     assert.equal(c.error !== undefined, true);
-    assert.match(c.error, /CF_ACCOUNT_ID/);
+    assert.match(c.error, /cf_account_id/);
+  });
+
+  it("reports missing config file", () => {
+    const c = loadConfig("/nonexistent/pi-cfbr.json");
+    assert.equal(c.error !== undefined, true);
   });
 });
 
