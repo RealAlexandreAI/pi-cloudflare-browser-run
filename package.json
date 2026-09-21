@@ -1,6 +1,6 @@
 {
   "name": "pi-cloudflare-browser-run",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Pi extension: web browsing tools (markdown / screenshot / pdf) powered by Cloudflare Browser Run. Headless Chrome on CF's network — JS-rendered pages, login sessions, WebMCP-capable.",
   "type": "module",
   "engines": {
@@ -31,7 +31,7 @@
   "devDependencies": {
     "@earendil-works/pi-coding-agent": "^0.86.0",
     "@types/node": "^26.6.2",
-    "tsx": "^4.23.13",
+    "tsx": "^4.23.15",
     "typescript": "^7.0.2"
   },
   "repository": {
