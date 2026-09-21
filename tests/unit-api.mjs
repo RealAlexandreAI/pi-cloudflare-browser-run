@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { writeFileSync, mkdtempSync, rmSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
-import { assertSafeUrl, browserRunAction, loadConfig } from "../src/api.ts";
+import { assertSafeUrl, browserRunAction, crawl, crawlStart, crawlStatus, defaultCrawlWait, loadConfig } from "../src/api.ts";
 
 let fixturePath;
 const pathToFixture = (content) => {
@@ -124,5 +124,81 @@ describe("browserRunAction", () => {
     const r = await browserRunAction(cfg, "screenshot", "https://example.com");
     assert.equal(r.ok, false);
     assert.match(r.error, /HTTP 403/);
+  });
+});
+
+describe("defaultCrawlWait", () => {
+  it("defaults wait on for small limits", () => {
+    assert.equal(defaultCrawlWait(undefined), true);
+    assert.equal(defaultCrawlWait(3), true);
+    assert.equal(defaultCrawlWait(20), true);
+    assert.equal(defaultCrawlWait(21), false);
+  });
+});
+
+describe("crawlStart / crawlStatus / crawl", () => {
+  const cfg = { apiToken: "t", accountId: "acc" };
+  const orig = globalThis.fetch;
+
+  after(() => {
+    globalThis.fetch = orig;
+  });
+
+  it("posts crawl start and returns job id", async () => {
+    const calls = [];
+    globalThis.fetch = async (url, init) => {
+      calls.push([String(url), init?.method, init?.body]);
+      return new Response(JSON.stringify({ success: true, result: "job-abc" }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    };
+    const r = await crawlStart(cfg, { url: "https://example.com", limit: 3, formats: ["markdown"] });
+    assert.equal(r.ok, true);
+    assert.equal(r.jobId, "job-abc");
+    assert.match(calls[0][0], /\/browser-rendering\/crawl$/);
+    assert.equal(calls[0][1], "POST");
+    const body = JSON.parse(calls[0][2]);
+    assert.equal(body.limit, 3);
+    assert.deepEqual(body.formats, ["markdown"]);
+  });
+
+  it("gets crawl status", async () => {
+    globalThis.fetch = async (url) => {
+      assert.match(String(url), /\/crawl\/job-abc\?limit=1$/);
+      return new Response(
+        JSON.stringify({
+          success: true,
+          result: { id: "job-abc", status: "running", total: 3, finished: 1, records: [] },
+        }),
+        { status: 200 },
+      );
+    };
+    const r = await crawlStatus(cfg, { jobId: "job-abc", limit: 1 });
+    assert.equal(r.ok, true);
+    assert.equal(r.job.status, "running");
+  });
+
+  it("crawl with wait=false returns job id without polling", async () => {
+    let n = 0;
+    globalThis.fetch = async () => {
+      n += 1;
+      return new Response(JSON.stringify({ success: true, result: "job-x" }), { status: 200 });
+    };
+    const r = await crawl(cfg, { url: "https://example.com", limit: 3, wait: false });
+    assert.equal(r.ok, true);
+    assert.equal(r.jobId, "job-x");
+    assert.equal(n, 1);
+  });
+
+  it("rejects private start URLs", async () => {
+    let called = false;
+    globalThis.fetch = async () => {
+      called = true;
+      return new Response();
+    };
+    const r = await crawlStart(cfg, { url: "http://127.0.0.1/" });
+    assert.equal(r.ok, false);
+    assert.equal(called, false);
   });
 });

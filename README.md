@@ -16,6 +16,8 @@ the v4 REST API directly.
 | `browse` | fetch a public URL, return clean **markdown** text (default; also `screenshot` / `pdf` actions) |
 | `screenshot` | save a PNG of the page locally, returns the file path |
 | `pdf` | save a PDF of the page locally, returns the file path |
+| `crawl` | multi-page crawl via Browser Run `/crawl` (markdown by default; waits for small limits) |
+| `crawl_status` | poll / fetch results for a crawl job id |
 
 ## Install
 
